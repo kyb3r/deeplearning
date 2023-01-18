@@ -1,5 +1,13 @@
+from torchvision.datasets import MNIST
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
 import torch
-import torch.nn as nn
+from torch import nn
+
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Encoder(nn.Module):
@@ -75,13 +83,6 @@ class ConditionalVAE(nn.Module):
         return self.decode(z, c), mu, log_var
 
 
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader
-from torchvision import transforms
-from tqdm import tqdm
-
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 def inference(model, c, n=10):
