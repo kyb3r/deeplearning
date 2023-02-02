@@ -16,8 +16,10 @@ class Encoder(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Linear(n_input, n_hidden),
+            nn.LayerNorm(n_hidden),
             nn.ReLU(),
             nn.Linear(n_hidden, n_hidden),
+            nn.LayerNorm(n_hidden),
             nn.ReLU(),
             nn.Linear(n_hidden, n_hidden),
         )
@@ -42,10 +44,13 @@ class Decoder(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Linear(latent_dims, n_hidden),
+            nn.LayerNorm(n_hidden),
             nn.ReLU(),
             nn.Linear(n_hidden, n_hidden),
+            nn.LayerNorm(n_hidden),
             nn.ReLU(),
             nn.Linear(n_hidden, n_hidden),
+            nn.LayerNorm(n_hidden),
             nn.ReLU(),
             nn.Linear(n_hidden, n_output),
             nn.Sigmoid(),
@@ -104,12 +109,14 @@ def plot_batch_and_save_image(x_hat, epoch):
 
 if __name__ == "__main__":
 
+    BATCH_SIZE = 64
+
     def get_data():
         train_ds = MNIST(
             root="data", train=True, download=True, transform=transforms.ToTensor()
         )
 
-        train_dl = DataLoader(train_ds, batch_size=32, shuffle=True)
+        train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
 
         return train_dl
 
@@ -117,11 +124,12 @@ if __name__ == "__main__":
     print(DEVICE)
     data_loader = get_data()
     model = ConditionalVAE().to(DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0007)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     EPOCHS = 50
 
     for epoch in range(EPOCHS):
+        epoch_losses = []
 
         with tqdm(data_loader) as data_loader:
             for batch in data_loader:
@@ -133,6 +141,7 @@ if __name__ == "__main__":
                 x_hat, mu, log_var = model(x, c)
 
                 loss = model.loss_function(x, x_hat, mu, log_var)
+                epoch_losses.append(loss.item())
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -146,7 +155,7 @@ if __name__ == "__main__":
             x_hat = inference(model, random_nums)
             plot_batch_and_save_image(x_hat, epoch)
 
-        print(f"Epoch {epoch} Loss: {loss}")
+        print(f"Epoch {epoch} Loss: {np.mean(epoch_losses) / BATCH_SIZE}")
 
     model.to("cpu")
     torch.save(model.state_dict(), "model.pth")
