@@ -10,7 +10,7 @@ import numpy as np
 from fastai.data.all import untar_data
 
 # Load the dataset into a Pandas DataFrame
-url = 'https://files.grouplens.org/datasets/movielens/ml-latest.zip'
+url = "https://files.grouplens.org/datasets/movielens/ml-latest.zip"
 path = untar_data(url)
 
 import pandas as pd
@@ -21,14 +21,12 @@ num_movies = ratings.movieId.nunique()
 num_users = ratings.userId.nunique()
 
 # Make a mapping of movieID to index starting from 0
-movie2idx = {o:i for i,o in enumerate(ratings.movieId.unique())}
+movie2idx = {o: i for i, o in enumerate(ratings.movieId.unique())}
 # ratings.movieId = ratings.movieId.apply(lambda x: movie2idx[x])
 
 # Make a mapping of userID to index starting from 0
-user2idx = {o:i for i,o in enumerate(ratings.userId.unique())}
+user2idx = {o: i for i, o in enumerate(ratings.userId.unique())}
 # ratings.userId = ratings.userId.apply(lambda x: user2idx[x])
-
-
 
 
 # Construct pytorch dataset of users and movies with ratings
@@ -41,7 +39,12 @@ class MovieLensDataset(Dataset):
 
     def __getitem__(self, idx):
         x = self.ratings.iloc[idx]
-        return user2idx[int(x.userId)], movie2idx[int(x.movieId)], torch.tensor(x.rating, dtype=torch.float32).unsqueeze(-1)
+        return (
+            user2idx[int(x.userId)],
+            movie2idx[int(x.movieId)],
+            torch.tensor(x.rating, dtype=torch.float32).unsqueeze(-1),
+        )
+
 
 dataset = MovieLensDataset(ratings[:500000])
 
@@ -63,6 +66,7 @@ class CollaborativeFiltering(nn.Module):
 
         affinities = (user_factors * movie_factors).sum(dim=1)
         return affinities.view(-1, 1)
+
 
 class NeuralCollaborativeFiltering(nn.Module):
     def __init__(self, n_users, n_movies, n_factors=50, n_hidden=500):
@@ -88,7 +92,7 @@ class NeuralCollaborativeFiltering(nn.Module):
 
         x = torch.cat([user_factors, movie_factors], dim=1)
         return torch.sigmoid(self.layers(x)) * 5.5
-    
+
 
 model = NeuralCollaborativeFiltering(num_users, num_movies).cuda()
 optim = torch.optim.Adam(model.parameters(), lr=1e-2)
@@ -105,7 +109,7 @@ for epoch in range(10):
         loss.backward()
         optim.step()
         train_losses.append(loss.item())
-    
+
     with torch.no_grad():
         val_losses = []
         model.eval()
@@ -114,7 +118,6 @@ for epoch in range(10):
             loss = nn.functional.mse_loss(scores, ratings.cuda())
             val_losses.append(loss.item())
         model.train()
-        
 
     train_loss = np.mean(train_losses)
     val_loss = np.mean(val_losses)
@@ -125,9 +128,9 @@ for epoch in range(10):
     print(f"Val loss: {val_loss:.4f}")
     # plot and save train loss image
 
-plt.plot(all_train_losses[3:], label='train')
-plt.plot(all_val_losses[3:], label='val')
-plt.savefig('train_loss-non-neural.png')
+plt.plot(all_train_losses[3:], label="train")
+plt.plot(all_val_losses[3:], label="val")
+plt.savefig("train_loss-non-neural.png")
 
 
 # Save the model

@@ -88,8 +88,6 @@ class ConditionalVAE(nn.Module):
         return self.decode(z, c), mu, log_var
 
 
-
-
 def inference(model, c, n=10):
     z = torch.randn(n, 20).to("cuda")
     x_hat = model.decode(z, c)
